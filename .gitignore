@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Build artifacts
+dist/
+build/
+coverage/
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/formula_images/*
+!backend/formula_images/.gitkeep
+frontend/vite.out.log
+frontend/vite.err.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

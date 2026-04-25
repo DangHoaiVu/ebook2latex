@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15
+    container_name: ebook2latex_db
+    environment:
+      POSTGRES_USER: ebook_user
+      POSTGRES_PASSWORD: ebook_pass
+      POSTGRES_DB: ebook2latex_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: ebook2latex_backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ebook_user:ebook_pass@db:5432/ebook2latex_db
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: ebook2latex_frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

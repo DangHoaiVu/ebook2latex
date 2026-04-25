@@ -1,0 +1,10 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+sqlalchemy==2.0.43
+psycopg2==2.9.10
+pydantic==2.11.7
+python-dotenv==1.1.1
+PyMuPDF==1.26.4
+pix2tex[gui]==0.1.4
+python-multipart==0.0.20
+Pillow==11.2.1
