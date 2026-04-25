@@ -33,6 +33,8 @@ backend/formula_images/*
 !backend/formula_images/.gitkeep
 frontend/vite.out.log
 frontend/vite.err.log
+*.dev.out.log
+*.dev.err.log
 
 # OS / Editor
 .DS_Store
