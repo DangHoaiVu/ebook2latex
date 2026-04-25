@@ -1,3 +1,3 @@
-from app.models.models import Document, FormulaEntry
+from app.models.models import Document, FormulaEntry, Log, User
 
-__all__ = ["Document", "FormulaEntry"]
+__all__ = ["Document", "FormulaEntry", "Log", "User"]

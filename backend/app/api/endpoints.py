@@ -1,5 +1,5 @@
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import text
@@ -19,6 +19,13 @@ from app.services.ocr_service import image_to_latex
 from app.services.pdf_service import extract_formula_images, inspect_pdf
 
 router = APIRouter()
+
+
+def _parse_uuid(value: str, field_name: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"{field_name} khong hop le") from exc
 
 
 @router.get("/health")
@@ -49,7 +56,7 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Chi chap nhan file PDF")
 
-    document_id = str(uuid4())
+    document_id = uuid4()
     original_name = Path(file.filename).name
     file_name = f"{document_id}_{original_name}"
     saved_path = UPLOAD_DIR / file_name
@@ -63,29 +70,27 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
     document = Document(
         id=document_id,
         file_name=original_name,
-        stored_path=str(saved_path),
+        file_path_url=str(saved_path),
         status="uploaded",
-        page_count=page_info["total_pages"],
     )
     db.add(document)
 
     formula_results: list[FormulaResult] = []
-    for item in extracted_images:
-        formula_id = str(uuid4())
+    for index, item in enumerate(extracted_images, start=1):
+        formula_id = uuid4()
         latex_result = image_to_latex(item["image_path"], fallback_text=item.get("source_text"))
 
         formula_entry = FormulaEntry(
             id=formula_id,
             document_id=document_id,
-            page_number=item["page_number"],
-            cropped_image_path=item["image_path"],
-            latex_result=latex_result,
-            source_text=item.get("source_text"),
+            raw_image_path=item["image_path"],
+            latex_content=latex_result,
+            order_index=index,
         )
         db.add(formula_entry)
         formula_results.append(
             FormulaResult(
-                id=formula_id,
+                id=str(formula_id),
                 page_number=item["page_number"],
                 image_path=item["image_path"],
                 latex=latex_result,
@@ -97,7 +102,7 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
 
     return PDFUploadResponse(
         message="Tai file PDF va trich xuat cong thuc thanh cong",
-        document_id=document_id,
+        document_id=str(document_id),
         file_name=original_name,
         stored_path=str(saved_path),
         total_pages=page_info["total_pages"],
@@ -108,23 +113,25 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
 @router.post("/save-formula/", response_model=SaveFormulaResponse)
 def save_formula(payload: SaveFormulaRequest, db: Session = Depends(get_db)):
     """Luu chuoi LaTeX cuoi cung vao PostgreSQL."""
-    document = db.get(Document, payload.document_id)
+    document_id = _parse_uuid(payload.document_id, "document_id")
+    document = db.get(Document, document_id)
     if document is None:
         raise HTTPException(status_code=404, detail="Khong tim thay document")
 
     formula_entry = None
     if payload.formula_entry_id:
-        formula_entry = db.get(FormulaEntry, payload.formula_entry_id)
+        formula_entry_id = _parse_uuid(payload.formula_entry_id, "formula_entry_id")
+        formula_entry = db.get(FormulaEntry, formula_entry_id)
 
     if formula_entry is None:
         formula_entry = FormulaEntry(
-            id=str(uuid4()),
-            document_id=payload.document_id,
-            latex_result=payload.latex_result,
+            id=uuid4(),
+            document_id=document_id,
+            latex_content=payload.latex_result,
         )
         db.add(formula_entry)
     else:
-        formula_entry.latex_result = payload.latex_result
+        formula_entry.latex_content = payload.latex_result
 
     document.status = "saved"
     db.commit()
@@ -132,6 +139,6 @@ def save_formula(payload: SaveFormulaRequest, db: Session = Depends(get_db)):
 
     return SaveFormulaResponse(
         message="Luu cong thuc thanh cong",
-        formula_entry_id=formula_entry.id,
-        latex_result=formula_entry.latex_result or "",
+        formula_entry_id=str(formula_entry.id),
+        latex_result=formula_entry.latex_content or "",
     )

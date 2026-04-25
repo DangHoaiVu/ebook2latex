@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from app.core.database import Base, SessionLocal, engine
-from app.models import Document, FormulaEntry
+from app.models import Document, FormulaEntry, User
 
 
 def seed() -> None:
@@ -9,22 +9,30 @@ def seed() -> None:
     Base.metadata.create_all(bind=engine)
 
     with SessionLocal() as db:
+        user = User(
+            user_id=uuid4(),
+            username_email="teo@dalat.edu.vn",
+            password_hash="hashed_password_here",
+            full_name="Le Van Teo",
+            role="Admin",
+        )
+        db.add(user)
+
         document = Document(
-            id=str(uuid4()),
+            id=uuid4(),
+            user_id=user.user_id,
             file_name="sample_math.pdf",
-            stored_path="uploads/sample_math.pdf",
+            file_path_url="uploads/sample_math.pdf",
             status="seeded",
-            page_count=3,
         )
         db.add(document)
 
         formula = FormulaEntry(
-            id=str(uuid4()),
+            id=uuid4(),
             document_id=document.id,
-            page_number=1,
-            cropped_image_path="formula_images/sample_formula.png",
-            latex_result=r"\int_0^1 x^2 \, dx",
-            source_text="int_0^1 x^2 dx",
+            raw_image_path="formula_images/sample_formula.png",
+            latex_content=r"\int_0^1 x^2 \, dx",
+            order_index=1,
         )
         db.add(formula)
         db.commit()
